@@ -33,6 +33,36 @@ python ball_tracker.py \
   --depth-tol 0.35
 ```
 
+## 相机-机械臂外参标定
+
+该脚本适用于 2 连杆平面机械臂，使用固定在末端执行器上的棋盘格标定板完成手眼标定。
+
+### 数据采集准备
+
+1. 将棋盘格固定在末端执行器，保持相机可见。
+2. 采集多组关节角与对应图像，记录到 CSV：
+
+```csv
+image,theta1,theta2
+data/img_0001.png,0.10,0.20
+data/img_0002.png,0.20,0.25
+```
+
+### 运行标定
+
+```bash
+python calibrate_extrinsics.py \
+  --samples data/samples.csv \
+  --link-lengths 0.30,0.20 \
+  --board-size 7,6 \
+  --square-size 0.024 \
+  --camera-matrix 600,0,320,0,600,240,0,0,1 \
+  --dist-coeffs 0,0,0,0,0 \
+  --output extrinsics.yaml
+```
+
+输出为 `extrinsics.yaml`，包含相机到末端执行器的旋转和平移矩阵，可用于后续将机械臂先验转换到相机坐标系。
+
 ### 常用参数说明
 
 - `--diameter`：球体直径（米）
