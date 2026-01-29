@@ -92,6 +92,17 @@ python live_chessboard_pose.py \
   --axis-length 0.05
 ```
 
+## 实时圆点阵姿态可视化（适用于 2 列内点）
+
+当棋盘格内角点只有 2 列时，OpenCV 的棋盘格检测无法使用。此脚本改用圆点阵检测，可用于 2×N 点阵。
+
+```bash
+python live_circlegrid_pose.py \
+  --pattern-size 2,11 \
+  --spacing 0.012 \
+  --axis-length 0.05
+```
+
 ### 常用参数说明
 
 - `--diameter`：球体直径（米）
