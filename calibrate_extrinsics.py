@@ -6,6 +6,7 @@ import numpy as np
 
 
 def parse_float_list(text, length, name):
+    """解析逗号分隔的浮点数列表。"""
     values = [float(item) for item in text.split(",")]
     if len(values) != length:
         raise ValueError(f"{name} must have {length} values, got {len(values)}")
@@ -13,6 +14,7 @@ def parse_float_list(text, length, name):
 
 
 def load_joint_samples(csv_path):
+    """读取 CSV 采样数据。"""
     samples = []
     with open(csv_path, newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
@@ -30,6 +32,7 @@ def load_joint_samples(csv_path):
 
 
 def fk_planar_2link(theta1, theta2, link1, link2):
+    """平面 2 连杆正运动学，返回 base->gripper 齐次矩阵。"""
     c1 = np.cos(theta1)
     s1 = np.sin(theta1)
     c12 = np.cos(theta1 + theta2)
@@ -47,6 +50,7 @@ def fk_planar_2link(theta1, theta2, link1, link2):
 
 
 def extract_rvec_tvec(transform):
+    """将 4x4 齐次矩阵转换为 Rodrigues 旋转向量与平移向量。"""
     rotation = transform[:3, :3]
     translation = transform[:3, 3]
     rvec, _ = cv2.Rodrigues(rotation)
@@ -54,6 +58,7 @@ def extract_rvec_tvec(transform):
 
 
 def solve_board_pose(image, board_size, square_size, camera_matrix, dist_coeffs):
+    """检测棋盘格并使用 PnP 求解标定板位姿。"""
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     found, corners = cv2.findChessboardCorners(gray, board_size)
     if not found:
@@ -73,6 +78,7 @@ def solve_board_pose(image, board_size, square_size, camera_matrix, dist_coeffs)
 
 
 def calibrate_hand_eye(samples, link1, link2, board_size, square_size, camera_matrix, dist_coeffs):
+    """组装机械臂与棋盘格的位姿对，执行手眼标定。"""
     r_gripper2base = []
     t_gripper2base = []
     r_target2cam = []
@@ -87,9 +93,11 @@ def calibrate_hand_eye(samples, link1, link2, board_size, square_size, camera_ma
         if board_pose is None:
             continue
         rvec, tvec = board_pose
+        # 棋盘格在相机坐标系下的位姿
         r_target2cam.append(rvec)
         t_target2cam.append(tvec)
 
+        # 机械臂正运动学得到 base->gripper，再取逆得到 gripper->base
         base_to_gripper = fk_planar_2link(
             sample["theta1"],
             sample["theta2"],
@@ -125,12 +133,14 @@ def main():
     parser.add_argument("--output", default="extrinsics.yaml", help="Output YAML file.")
     args = parser.parse_args()
 
+    # 解析参数
     link1, link2 = parse_float_list(args.link_lengths, 2, "link-lengths")
     board_cols, board_rows = parse_float_list(args.board_size, 2, "board-size")
     board_size = (int(board_cols), int(board_rows))
     camera_matrix = np.array(parse_float_list(args.camera_matrix, 9, "camera-matrix")).reshape(3, 3)
     dist_coeffs = np.array(parse_float_list(args.dist_coeffs, 5, "dist-coeffs")).reshape(5, 1)
 
+    # 加载样本并执行标定
     samples = load_joint_samples(args.samples)
     r_cam2gripper, t_cam2gripper = calibrate_hand_eye(
         samples,
@@ -142,6 +152,7 @@ def main():
         dist_coeffs,
     )
 
+    # 保存结果
     fs = cv2.FileStorage(args.output, cv2.FILE_STORAGE_WRITE)
     fs.write("R_cam2gripper", r_cam2gripper)
     fs.write("t_cam2gripper", t_cam2gripper)
