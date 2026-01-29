@@ -92,16 +92,20 @@ python live_chessboard_pose.py \
   --axis-length 0.05
 ```
 
-## 实时圆点阵姿态可视化（适用于 2 列内点）
+## 实时 ChArUco 标定板姿态可视化（适用于 2 列棋盘格）
 
-当棋盘格内角点只有 2 列时，OpenCV 的棋盘格检测无法使用。此脚本改用圆点阵检测，可用于 2×N 点阵。
+当棋盘格内角点只有 2 列时，标准棋盘格角点检测无法使用。此脚本改用 ChArUco 标定板检测（棋盘格 + ArUco 标记），更适合长条形棋盘。
 
 ```bash
 python live_circlegrid_pose.py \
-  --pattern-size 2,11 \
-  --spacing 0.012 \
+  --squares-x 3 \
+  --squares-y 12 \
+  --square-length 0.012 \
+  --marker-length 0.009 \
   --axis-length 0.05
 ```
+
+需要注意：ChArUco 的 `squares-x/squares-y` 是棋盘格“方格数”，不是内角点数。
 
 ### 常用参数说明
 
