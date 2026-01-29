@@ -70,6 +70,19 @@ python calibrate_extrinsics.py \
 
 输出为 `extrinsics.yaml`，包含相机到末端执行器的旋转和平移矩阵，可用于后续将机械臂先验转换到相机坐标系。
 
+## 实时棋盘格姿态可视化
+
+该脚本实时读取相机图像，检测棋盘格并绘制坐标轴（原点为棋盘格第一个内角点）。
+
+```bash
+python live_chessboard_pose.py \
+  --board-size 7,6 \
+  --square-size 0.012 \
+  --camera-matrix 600,0,320,0,600,240,0,0,1 \
+  --dist-coeffs 0,0,0,0,0 \
+  --axis-length 0.05
+```
+
 ### 常用参数说明
 
 - `--diameter`：球体直径（米）
