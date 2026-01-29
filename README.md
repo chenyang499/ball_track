@@ -78,6 +78,15 @@ python calibrate_extrinsics.py \
 python live_chessboard_pose.py \
   --board-size 7,6 \
   --square-size 0.012 \
+  --axis-length 0.05
+```
+
+如果你希望手动指定内参，也可以这样运行：
+
+```bash
+python live_chessboard_pose.py \
+  --board-size 7,6 \
+  --square-size 0.012 \
   --camera-matrix 600,0,320,0,600,240,0,0,1 \
   --dist-coeffs 0,0,0,0,0 \
   --axis-length 0.05

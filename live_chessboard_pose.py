@@ -49,6 +49,20 @@ def draw_axes(image, camera_matrix, dist_coeffs, rvec, tvec, axis_length):
     return origin
 
 
+def rs_intrinsics_to_matrix(intrinsics):
+    """将 RealSense 内参转换为 OpenCV 相机矩阵与畸变系数。"""
+    camera_matrix = np.array(
+        [
+            [intrinsics.fx, 0.0, intrinsics.ppx],
+            [0.0, intrinsics.fy, intrinsics.ppy],
+            [0.0, 0.0, 1.0],
+        ],
+        dtype=np.float32,
+    )
+    dist_coeffs = np.array(intrinsics.coeffs, dtype=np.float32).reshape(5, 1)
+    return camera_matrix, dist_coeffs
+
+
 def main():
     parser = argparse.ArgumentParser(description="Real-time chessboard pose visualization.")
     # 相机流参数
@@ -58,9 +72,9 @@ def main():
     # 棋盘格参数
     parser.add_argument("--board-size", required=True, help="Inner corners as cols,rows.")
     parser.add_argument("--square-size", type=float, required=True, help="Chessboard square size (m).")
-    # 相机内参
-    parser.add_argument("--camera-matrix", required=True, help="Camera intrinsics 3x3 row-major list.")
-    parser.add_argument("--dist-coeffs", default="0,0,0,0,0", help="Dist coeffs list.")
+    # 相机内参（可选，未提供则从 RealSense 读取）
+    parser.add_argument("--camera-matrix", default=None, help="Camera intrinsics 3x3 row-major list.")
+    parser.add_argument("--dist-coeffs", default=None, help="Dist coeffs list.")
     # 坐标轴长度
     parser.add_argument("--axis-length", type=float, default=0.05, help="Axis length in meters.")
     args = parser.parse_args()
@@ -68,15 +82,25 @@ def main():
     # 解析参数并构造棋盘格模型点
     board_cols, board_rows = parse_float_list(args.board_size, 2, "board-size")
     board_size = (int(board_cols), int(board_rows))
-    camera_matrix = np.array(parse_float_list(args.camera_matrix, 9, "camera-matrix")).reshape(3, 3)
-    dist_coeffs = np.array(parse_float_list(args.dist_coeffs, 5, "dist-coeffs")).reshape(5, 1)
     objp = build_object_points(board_size, args.square_size)
 
     # 初始化 RealSense 仅彩色流
     pipeline = rs.pipeline()
     config = rs.config()
     config.enable_stream(rs.stream.color, args.width, args.height, rs.format.bgr8, args.fps)
-    pipeline.start(config)
+    profile = pipeline.start(config)
+    color_stream = profile.get_stream(rs.stream.color).as_video_stream_profile()
+    rs_intrinsics = color_stream.get_intrinsics()
+
+    # 如果未提供内参，则使用 RealSense 读取值
+    if args.camera_matrix is None:
+        camera_matrix, dist_coeffs = rs_intrinsics_to_matrix(rs_intrinsics)
+    else:
+        camera_matrix = np.array(parse_float_list(args.camera_matrix, 9, "camera-matrix")).reshape(3, 3)
+        if args.dist_coeffs is None:
+            dist_coeffs = np.zeros((5, 1), dtype=np.float32)
+        else:
+            dist_coeffs = np.array(parse_float_list(args.dist_coeffs, 5, "dist-coeffs")).reshape(5, 1)
 
     try:
         while True:
